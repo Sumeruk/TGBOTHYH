@@ -27,12 +27,27 @@ public class ResponseHandler {
         chatStates.put(chatId, UserState.AWAITING_NAME);
     }
 
-    public void replyToButtons(long chatId, Message message){
-        SendMessage sendMessage = new SendMessage();
-        sendMessage.setChatId(chatId);
-        sendMessage.setText("Мы получили текст " + message.getText());
-        sender.send(sendMessage.getText(), chatId);
-        chatStates.put(chatId, UserState.FOOD_DRINK_SELECTION);
+    public void replyToButtons(long chatId, Message message) {
+        if (message.getText().equals("/stop")) {
+            SendMessage sendMessage = new SendMessage();
+            sendMessage.setChatId(chatId);
+            sendMessage.setText("спасибо за общение");
+            chatStates.remove(chatId);
+            sender.execute(sendMessage);
+        }
+
+        if (chatStates.containsKey(chatId)) {
+            SendMessage sendMessage = new SendMessage();
+            sendMessage.setChatId(chatId);
+            sendMessage.setText("Мы получили текст " + message.getText());
+            sender.send(sendMessage.getText(), chatId);
+            chatStates.put(chatId, UserState.FOOD_DRINK_SELECTION);
+        } else {
+            SendMessage sendMessage = new SendMessage();
+            sendMessage.setChatId(chatId);
+            sendMessage.setText("пиши /start");
+            sender.send(sendMessage.getText(), chatId);
+        }
     }
 
     public boolean userIsActive(Long chatId) {
