@@ -20,11 +20,11 @@ import static org.telegram.abilitybots.api.util.AbilityUtils.getChatId;
 
 @Component
 
-public class PizzaBot extends AbilityBot {
+public class OrderBot extends AbilityBot {
     private final ResponseHandler responseHandler;
 
     @Autowired
-    public PizzaBot(Environment env) {
+    public OrderBot(Environment env) {
         super(ReadConfig.getBotToken(), "HYHbot");
         responseHandler = new ResponseHandler(silent, db);
     }

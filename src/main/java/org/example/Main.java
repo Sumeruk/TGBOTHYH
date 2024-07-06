@@ -1,6 +1,6 @@
 package org.example;
 
-import org.example.bot.PizzaBot;
+import org.example.bot.OrderBot;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -17,7 +17,7 @@ public class Main {
 
         try{
             TelegramBotsApi api = new TelegramBotsApi(DefaultBotSession.class);
-            api.registerBot(ctx.getBean(PizzaBot.class));
+            api.registerBot(ctx.getBean(OrderBot.class));
         } catch (TelegramApiException e){
             throw new RuntimeException(e);
         }
