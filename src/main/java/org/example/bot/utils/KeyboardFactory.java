@@ -1,4 +1,4 @@
-package org.example.bot;
+package org.example.bot.utils;
 
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboard;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;

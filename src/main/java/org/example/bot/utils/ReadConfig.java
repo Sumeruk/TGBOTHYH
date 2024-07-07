@@ -1,4 +1,4 @@
-package org.example;
+package org.example.bot.utils;
 
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;

@@ -1,6 +1,8 @@
 package org.example.bot;
 
-import org.example.ReadConfig;
+import org.example.bot.utils.ReadConfig;
+import org.example.bot.replies.ResponseHandler;
+import org.example.bot.constants.Constants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;

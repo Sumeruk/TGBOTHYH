@@ -1,4 +1,4 @@
-package org.example.bot;
+package org.example.bot.constants;
 
 public class Constants {
 
