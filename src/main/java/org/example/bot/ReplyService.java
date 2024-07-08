@@ -1,4 +1,4 @@
-package org.example.bot.replies;
+package org.example.bot;
 
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;

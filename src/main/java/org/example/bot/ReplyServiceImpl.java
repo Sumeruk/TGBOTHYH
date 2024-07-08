@@ -1,16 +1,15 @@
-package org.example.bot.replies;
+package org.example.bot;
 
-import org.example.bot.utils.KeyboardFactory;
-import org.example.bot.constants.UserState;
+import org.example.ReadConfig;
 import org.telegram.abilitybots.api.sender.SilentSender;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 
 import java.util.Map;
 
-import static org.example.bot.constants.Constants.START_TEXT;
-import static org.example.bot.constants.Constants.START_TEXT_FOR_OLD_ORDER;
-import static org.example.bot.constants.UserState.*;
+import static org.example.bot.Constants.START_TEXT;
+import static org.example.bot.Constants.START_TEXT_FOR_OLD_ORDER;
+import static org.example.bot.UserState.*;
 
 public class ReplyServiceImpl implements ReplyService {
 
@@ -51,28 +50,34 @@ public class ReplyServiceImpl implements ReplyService {
 
     @Override
     public SendMessage replyForDrinkFoodSelection(long chatId, Message message) {
-        SendMessage sendMessage = new SendMessage();
-        sendMessage.setChatId(chatId);
-        if (message.getText().equals("Еда")) {
-            sendMessage.setReplyMarkup(KeyboardFactory.getFoodsKeyboard());
-        } else {
-            if (message.getText().equals("Напитки")) {
-                sendMessage.setReplyMarkup(KeyboardFactory.getDrinksKeyboard());
+        if(isMessageCorrect(chatId, message)) {
+            SendMessage sendMessage = new SendMessage();
+            sendMessage.setChatId(chatId);
+            if (message.getText().equals("Еда")) {
+                sendMessage.setReplyMarkup(KeyboardFactory.getFoodsKeyboard());
+            } else {
+                if (message.getText().equals("Напитки")) {
+                    sendMessage.setReplyMarkup(KeyboardFactory.getDrinksKeyboard());
+                }
             }
-        }
-        sendMessage.setText("Выберите позицию");
-        chatStates.put(chatId, CHOICE_POSITION);
-        return sendMessage;
+            sendMessage.setText("Выберите позицию");
+            chatStates.put(chatId, CHOICE_POSITION);
+            return sendMessage;
+        } else
+            return null;
     }
 
     @Override
     public SendMessage replyForPosition(long chatId, Message message) {
-        SendMessage sendMessage = new SendMessage();
-        sendMessage.setChatId(chatId);
-        sendMessage.setText("Выбран " + message.getText());
-        sendMessage.setReplyMarkup(KeyboardFactory.getAmounts());
-        chatStates.put(chatId, AMOUNT_SELECTION);
-        return sendMessage;
+        if(isMessageCorrect(chatId, message)) {
+            SendMessage sendMessage = new SendMessage();
+            sendMessage.setChatId(chatId);
+            sendMessage.setText("Выбран " + message.getText());
+            sendMessage.setReplyMarkup(KeyboardFactory.getAmounts());
+            chatStates.put(chatId, AMOUNT_SELECTION);
+            return sendMessage;
+        } else
+            return null;
     }
 
     @Override
@@ -131,5 +136,16 @@ public class ReplyServiceImpl implements ReplyService {
         sendMessage.setChatId(chatId);
         sendMessage.setText("не знаю даже что и сказать на такое...");
         return sendMessage;
+    }
+
+    private boolean isMessageCorrect(long chatId, Message message){
+        if(chatStates.get(chatId).equals(CHOICE_POSITION)){
+            return isMessageContainsPosition(message);
+        }
+        return true;
+    }
+
+    private boolean isMessageContainsPosition(Message message){
+        return ReadConfig.getDrinks().contains(message.getText()) || ReadConfig.getFood().contains(message.getText());
     }
 }

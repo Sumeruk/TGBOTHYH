@@ -1,8 +1,6 @@
-package org.example.bot.replies;
+package org.example.bot;
 
 
-import org.example.bot.constants.Constants;
-import org.example.bot.constants.UserState;
 import org.telegram.abilitybots.api.db.DBContext;
 import org.telegram.abilitybots.api.sender.SilentSender;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -11,6 +9,7 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import java.util.Map;
 
 public class ResponseHandler {
+
     private final SilentSender sender;
     private final Map<Long, UserState> chatStates;
     private final ReplyService replyService;
@@ -32,7 +31,7 @@ public class ResponseHandler {
         sender.execute(message);
     }
 
-    public void replyToButtons(long chatId, Message message) {
+    public void replyToButtons(long chatId, Message message){
         if (message.getText().equals("/stop")) {
             replyToStop(chatId);
             return;
@@ -78,7 +77,12 @@ public class ResponseHandler {
 
     private void replyForPosition(long chatId, Message message) {
         SendMessage sendMessage = replyService.replyForPosition(chatId, message);
-        sender.execute(sendMessage);
+
+        if(sendMessage != null) {
+            sender.execute(sendMessage);
+        } else {
+            unexpectedMessage(chatId);
+        }
     }
 
     //TODO сохранение в общий заказ в сервисе
