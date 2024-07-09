@@ -25,6 +25,7 @@ public abstract class KeyboardFactory {
         row.add("Еда");
         row.add("Напитки");
         row.add("Подытожить заказ");
+        row.add(Constants.RETURN);
         return new ReplyKeyboardMarkup(List.of(row));
     }
 

@@ -141,6 +141,19 @@ public class ReplyServiceImpl implements ReplyService {
                 chatStates.put(chatId, CHOICE_POSITION);
                 return sendMessage;
             }
+            case Constants.RETURN: {
+
+                String position = order.get(order.size() - 1);
+                StringBuilder sb = new StringBuilder(position);
+                sb.deleteCharAt(position.length() - 1);
+                position = sb.toString();
+                order.set(order.size() - 1, position);
+
+                message.setText(order.get(order.size() - 1));
+                order.remove(order.size() - 1);
+                return replyForPosition(chatId, message);
+
+            }
             default: {
                 return unexpectedMessage(chatId);
             }
