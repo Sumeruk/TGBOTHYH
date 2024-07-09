@@ -76,16 +76,22 @@ public class ReplyServiceImpl implements ReplyService {
             chatStates.put(chatId, AMOUNT_SELECTION);
             setInfoToOrder(message);
             return sendMessage;
-        } else
-            return null;
+        } else if (message.getText().equals(Constants.RETURN)) {
+            if (order.isEmpty()) {
+                return replyToStart(chatId);
+            } else {
+                return replyStartForOldOrder(chatId);
+            }
+        }
+        return unexpectedMessage(chatId);
     }
 
-    private void setInfoToOrder(Message message){
+    private void setInfoToOrder(Message message) {
         try {
             Integer.parseInt(message.getText());
             String position = order.get(order.size() - 1) + message.getText();
             order.set(order.size() - 1, position);
-        } catch (NumberFormatException nfe){
+        } catch (NumberFormatException nfe) {
             order.add(message.getText());
         }
     }
