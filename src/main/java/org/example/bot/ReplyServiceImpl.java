@@ -1,10 +1,11 @@
 package org.example.bot;
 
 import org.example.ReadConfig;
-import org.telegram.abilitybots.api.sender.SilentSender;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import static org.example.bot.Constants.START_TEXT;
@@ -13,15 +14,16 @@ import static org.example.bot.UserState.*;
 
 public class ReplyServiceImpl implements ReplyService {
 
-    private final SilentSender sender;
     private final Map<Long, UserState> chatStates;
+    private final KeyboardFactory keyboardFactory;
 
-    private final KeyboardFactory keyboardFactory = new KeyboardFactoryFromFile();
-    public ReplyServiceImpl(SilentSender sender, Map<Long, UserState> chatStates) {
-        this.sender = sender;
+    private List<String> order = new ArrayList<>();
+
+
+    public ReplyServiceImpl(Map<Long, UserState> chatStates) {
         this.chatStates = chatStates;
+        keyboardFactory = new KeyboardFactoryFromFile();
     }
-
 
     @Override
     public SendMessage replyToStart(long chatId) {
@@ -47,7 +49,7 @@ public class ReplyServiceImpl implements ReplyService {
 
     @Override
     public SendMessage replyForDrinkFoodSelection(long chatId, Message message) {
-        if(isMessageCorrect(chatId, message)) {
+        if (isMessageCorrect(chatId, message)) {
             SendMessage sendMessage = new SendMessage();
             sendMessage.setChatId(chatId);
             if (message.getText().equals("Еда")) {
@@ -66,15 +68,26 @@ public class ReplyServiceImpl implements ReplyService {
 
     @Override
     public SendMessage replyForPosition(long chatId, Message message) {
-        if(isMessageCorrect(chatId, message)) {
+        if (isMessageCorrect(chatId, message)) {
             SendMessage sendMessage = new SendMessage();
             sendMessage.setChatId(chatId);
             sendMessage.setText("Выбран " + message.getText());
             sendMessage.setReplyMarkup(keyboardFactory.getAmounts());
             chatStates.put(chatId, AMOUNT_SELECTION);
+            setInfoToOrder(message);
             return sendMessage;
         } else
             return null;
+    }
+
+    private void setInfoToOrder(Message message){
+        try {
+            Integer.parseInt(message.getText());
+            String position = order.get(order.size() - 1) + message.getText();
+            order.set(order.size() - 1, position);
+        } catch (NumberFormatException nfe){
+            order.add(message.getText());
+        }
     }
 
     @Override
@@ -84,6 +97,7 @@ public class ReplyServiceImpl implements ReplyService {
         try {
             short amount = Short.parseShort(message.getText());
             sendMessage.setText("Добавлено " + amount);
+            setInfoToOrder(message);
             return sendMessage;
         } catch (NumberFormatException nfe) {
             sendMessage.setText("сообщение не понято, напишите число");
@@ -106,7 +120,7 @@ public class ReplyServiceImpl implements ReplyService {
         sendMessage.setChatId(chatId);
         switch (message.getText()) {
             case "Подытожить заказ": {
-                sendMessage.setText("Еще не дописан функционал");
+                sendMessage.setText(order.toString());
                 return sendMessage;
             }
             case "Еда": {
@@ -135,14 +149,14 @@ public class ReplyServiceImpl implements ReplyService {
         return sendMessage;
     }
 
-    private boolean isMessageCorrect(long chatId, Message message){
-        if(chatStates.get(chatId).equals(CHOICE_POSITION)){
+    private boolean isMessageCorrect(long chatId, Message message) {
+        if (chatStates.get(chatId).equals(CHOICE_POSITION)) {
             return isMessageContainsPosition(message);
         }
         return true;
     }
 
-    private boolean isMessageContainsPosition(Message message){
+    private boolean isMessageContainsPosition(Message message) {
         return ReadConfig.getDrinks().contains(message.getText()) || ReadConfig.getFood().contains(message.getText());
     }
 }

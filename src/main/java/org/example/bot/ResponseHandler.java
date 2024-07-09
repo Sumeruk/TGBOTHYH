@@ -1,8 +1,5 @@
 package org.example.bot;
 
-
-import org.example.repository.OrderRepository;
-import org.example.repository.ProductRepository;
 import org.telegram.abilitybots.api.db.DBContext;
 import org.telegram.abilitybots.api.sender.SilentSender;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -11,18 +8,16 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import java.util.Map;
 
 public class ResponseHandler {
-
     private final SilentSender sender;
     private final Map<Long, UserState> chatStates;
     private final ReplyService replyService;
 
-    private OrderRepository countryRepository;
-    private ProductRepository productRepository;
+
 
     public ResponseHandler(SilentSender sender, DBContext db) {
         this.sender = sender;
         chatStates = db.getMap(Constants.CHAT_STATES);
-        replyService = new ReplyServiceImpl(sender, chatStates);
+        replyService = new ReplyServiceImpl(chatStates);
 
     }
 
@@ -37,10 +32,8 @@ public class ResponseHandler {
         sender.execute(message);
     }
 
-    public void replyToButtons(long chatId, Message message, OrderRepository countryRepository,
-                               ProductRepository productRepository){
-        this.countryRepository = countryRepository;
-        this.productRepository = productRepository;
+    public void replyToButtons(long chatId, Message message) {
+
         if (message.getText().equals("/stop")) {
             replyToStop(chatId);
             return;
@@ -52,8 +45,6 @@ public class ResponseHandler {
         }
 
         switch (chatStates.get(chatId)) {
-            case AWAITING_START -> replyToAwaitingStart(chatId, message);
-            case AWAITING_MESSAGE -> replyToAwaitingName(chatId, message);
             case NEW_ORDER_FOOD_DRINK_SELECTION -> replyForDrinkFoodSelection(chatId, message);
             case OLD_ORDER_FOOD_DRINK_SELECTION -> replyForDrinkFoodSelectionForOldOrder(chatId, message);
             case CHOICE_POSITION -> replyForPosition(chatId, message);
@@ -61,21 +52,6 @@ public class ResponseHandler {
             default -> unexpectedMessage(chatId);
         }
 
-    }
-
-    private void replyToAwaitingStart(long chatId, Message message) {
-        SendMessage sendMessage = new SendMessage();
-        sendMessage.setChatId(chatId);
-        sendMessage.setText("ты " + message.getText() + " не пиши, ты /start пиши");
-        sender.send(sendMessage.getText(), chatId);
-    }
-
-    private void replyToAwaitingName(long chatId, Message message) {
-        SendMessage sendMessage = new SendMessage();
-        sendMessage.setChatId(chatId);
-        sendMessage.setText("Мы получили текст " + message.getText());
-        sender.send(sendMessage.getText(), chatId);
-        chatStates.put(chatId, UserState.AWAITING_MESSAGE);
     }
 
     //TODO сохранение в общий заказ в сервисе
