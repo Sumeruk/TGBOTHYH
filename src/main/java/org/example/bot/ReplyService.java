@@ -8,7 +8,7 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 public interface ReplyService {
     SendMessage replyToStart(long chatId);
     SendMessage replyToStop(long chatId);
-    SendMessage processingReplyAfterStop();
+    SendMessage replyForDrinkFoodSelectionForOldOrder(long chatId, Message message);
     SendMessage replyForDrinkFoodSelection(long chatId, Message message);
     SendMessage replyForPosition(long chatId, Message message);
     SendMessage replyForAmount(long chatId, Message message);

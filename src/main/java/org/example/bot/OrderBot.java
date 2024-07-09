@@ -1,8 +1,8 @@
 package org.example.bot;
 
-import org.example.bot.utils.ReadConfig;
-import org.example.bot.replies.ResponseHandler;
-import org.example.bot.constants.Constants;
+import org.example.ReadConfig;
+import org.example.repository.OrderRepository;
+import org.example.repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
@@ -21,14 +21,19 @@ import static org.telegram.abilitybots.api.util.AbilityUtils.getChatId;
 
 
 @Component
-
 public class OrderBot extends AbilityBot {
     private final ResponseHandler responseHandler;
+
+    @Autowired
+    private OrderRepository repository;
+    @Autowired
+    private ProductRepository productRepository;
 
     @Autowired
     public OrderBot(Environment env) {
         super(ReadConfig.getBotToken(), "HYHbot");
         responseHandler = new ResponseHandler(silent, db);
+
     }
 
     public Ability startBot() {
@@ -44,7 +49,8 @@ public class OrderBot extends AbilityBot {
 
     public Reply replyToButtons(){
         BiConsumer<BaseAbilityBot, Update> action = (
-                (baseAbilityBot, update) -> responseHandler.replyToButtons(getChatId(update), update.getMessage()));
+                (baseAbilityBot, update) -> responseHandler.replyToButtons(getChatId(update), update.getMessage(),
+                        repository, productRepository));
 
         return Reply.of(action, Flag.TEXT, upd -> responseHandler.userIsActive(getChatId(upd)));
 

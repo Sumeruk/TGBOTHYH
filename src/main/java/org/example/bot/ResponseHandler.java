@@ -1,6 +1,8 @@
 package org.example.bot;
 
 
+import org.example.repository.OrderRepository;
+import org.example.repository.ProductRepository;
 import org.telegram.abilitybots.api.db.DBContext;
 import org.telegram.abilitybots.api.sender.SilentSender;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -14,10 +16,14 @@ public class ResponseHandler {
     private final Map<Long, UserState> chatStates;
     private final ReplyService replyService;
 
+    private OrderRepository countryRepository;
+    private ProductRepository productRepository;
+
     public ResponseHandler(SilentSender sender, DBContext db) {
         this.sender = sender;
         chatStates = db.getMap(Constants.CHAT_STATES);
         replyService = new ReplyServiceImpl(sender, chatStates);
+
     }
 
 
@@ -31,7 +37,10 @@ public class ResponseHandler {
         sender.execute(message);
     }
 
-    public void replyToButtons(long chatId, Message message){
+    public void replyToButtons(long chatId, Message message, OrderRepository countryRepository,
+                               ProductRepository productRepository){
+        this.countryRepository = countryRepository;
+        this.productRepository = productRepository;
         if (message.getText().equals("/stop")) {
             replyToStop(chatId);
             return;
@@ -98,7 +107,7 @@ public class ResponseHandler {
     }
 
     private void replyForDrinkFoodSelectionForOldOrder(long chatId, Message message) {
-        SendMessage sendMessage = replyService.replyForDrinkFoodSelection(chatId, message);
+        SendMessage sendMessage = replyService.replyForDrinkFoodSelectionForOldOrder(chatId, message);
         sender.execute(sendMessage);
     }
 
