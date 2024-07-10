@@ -1,6 +1,9 @@
 package org.example.bot;
 
 import org.example.ReadConfig;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 
@@ -12,17 +15,23 @@ import static org.example.bot.Constants.START_TEXT;
 import static org.example.bot.Constants.START_TEXT_FOR_OLD_ORDER;
 import static org.example.bot.UserState.*;
 
+@Service
 public class ReplyServiceImpl implements ReplyService {
 
     private final Map<Long, UserState> chatStates;
-    private final KeyboardFactory keyboardFactory;
+
+    private  KeyboardFactory keyboardFactory;
 
     private List<String> order = new ArrayList<>();
 
 
     public ReplyServiceImpl(Map<Long, UserState> chatStates) {
         this.chatStates = chatStates;
-        keyboardFactory = new KeyboardFactoryFromFile();
+    }
+
+    @Autowired
+    public void setKeyboardFactory(@Qualifier("fromFile") KeyboardFactory keyboardFactory) {
+        this.keyboardFactory = keyboardFactory;
     }
 
     @Override

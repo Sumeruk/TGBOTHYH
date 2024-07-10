@@ -1,5 +1,7 @@
 package org.example.bot;
 
+import org.example.repository.OrderRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboard;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
@@ -8,10 +10,6 @@ import java.util.List;
 
 public abstract class KeyboardFactory {
 
-
-//    public ReplyKeyboard getFreeTables(){
-//
-//    }
 
     public ReplyKeyboard getFoodsOrDrinkKeyboardForNewOrder() {
         KeyboardRow row = new KeyboardRow();

@@ -1,5 +1,6 @@
 package org.example.bot;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.telegram.abilitybots.api.db.DBContext;
 import org.telegram.abilitybots.api.sender.SilentSender;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -8,10 +9,27 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import java.util.Map;
 
 public class ResponseHandler {
-    private final SilentSender sender;
-    private final Map<Long, UserState> chatStates;
-    private final ReplyService replyService;
+    private SilentSender sender;
+    private Map<Long, UserState> chatStates;
+    private ReplyService replyService;
 
+    public ResponseHandler() {
+    }
+
+    @Autowired
+    public void setSender(SilentSender sender) {
+        this.sender = sender;
+    }
+
+    @Autowired
+    public void setChatStates(Map<Long, UserState> chatStates) {
+        this.chatStates = chatStates;
+    }
+
+    @Autowired
+    public void setReplyService(ReplyService replyService) {
+        this.replyService = replyService;
+    }
 
 
     public ResponseHandler(SilentSender sender, DBContext db) {
@@ -30,6 +48,7 @@ public class ResponseHandler {
     public void replyToStop(long chatId) {
         SendMessage message = replyService.replyToStop(chatId);
         sender.execute(message);
+
     }
 
     public void replyToButtons(long chatId, Message message) {
@@ -63,7 +82,7 @@ public class ResponseHandler {
     private void replyForPosition(long chatId, Message message) {
         SendMessage sendMessage = replyService.replyForPosition(chatId, message);
 
-        if(sendMessage != null) {
+        if (sendMessage != null) {
             sender.execute(sendMessage);
         } else {
             unexpectedMessage(chatId);

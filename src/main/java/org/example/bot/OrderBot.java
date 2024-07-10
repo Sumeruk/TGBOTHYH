@@ -5,6 +5,7 @@ import org.example.repository.OrderRepository;
 import org.example.repository.ProductRepository;
 import org.example.repository.TablesRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 import org.telegram.abilitybots.api.bot.AbilityBot;
 import org.telegram.abilitybots.api.bot.BaseAbilityBot;
@@ -22,13 +23,17 @@ import static org.telegram.abilitybots.api.util.AbilityUtils.getChatId;
 
 @Component
 public class OrderBot extends AbilityBot {
-    private final ResponseHandler responseHandler;
+    private ResponseHandler responseHandler;
 
     public OrderBot() {
         super(ReadConfig.getBotToken(), "HYHbot");
-        responseHandler = new ResponseHandler(silent, db);
-
     }
+
+    @Autowired
+    public void setResponseHandler(@Lazy  ResponseHandler responseHandler){
+        this.responseHandler = responseHandler;
+    }
+
 
     public Ability startBot() {
         return Ability
