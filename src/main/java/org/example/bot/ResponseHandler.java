@@ -40,6 +40,7 @@ public class ResponseHandler {
     }
 
 
+
     public void replyToStart(long chatId) {
         SendMessage message = replyService.replyToStart(chatId);
         sender.execute(message);
@@ -63,8 +64,12 @@ public class ResponseHandler {
             return;
         }
 
+        if (message.getText().equals("Новый заказ")){
+            // логика нового заказа
+        }
+
         switch (chatStates.get(chatId)) {
-            case NEW_ORDER_FOOD_DRINK_SELECTION -> replyForDrinkFoodSelection(chatId, message);
+            case ORDER_SELECTION -> replyForOrderSelection(chatId, message);
             case OLD_ORDER_FOOD_DRINK_SELECTION -> replyForDrinkFoodSelectionForOldOrder(chatId, message);
             case CHOICE_POSITION -> replyForPosition(chatId, message);
             case AMOUNT_SELECTION -> replyForAmount(chatId, message);
@@ -73,9 +78,8 @@ public class ResponseHandler {
 
     }
 
-    //TODO сохранение в общий заказ в сервисе
-    private void replyForDrinkFoodSelection(long chatId, Message message) {
-        SendMessage sendMessage = replyService.replyForDrinkFoodSelection(chatId, message);
+    private void replyForOrderSelection(long chatId, Message message) {
+        SendMessage sendMessage = replyService.replyForOrderSelection(chatId, message);
         sender.execute(sendMessage);
     }
 
@@ -89,11 +93,13 @@ public class ResponseHandler {
         }
     }
 
-    //TODO сохранение в общий заказ в сервисе
     private void replyForAmount(long chatId, Message message) {
         SendMessage sendMessage = replyService.replyForAmount(chatId, message);
         sender.execute(sendMessage);
-        replyStartForOldOrder(chatId);
+        if (!sendMessage.getText().equals(Constants.START_TEXT) &&
+                !sendMessage.getText().equals(Constants.START_TEXT_FOR_OLD_ORDER)) {
+            replyStartForOldOrder(chatId);
+        }
     }
 
     private void replyStartForOldOrder(long chatId) {

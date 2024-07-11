@@ -7,7 +7,7 @@ public interface ReplyService {
     SendMessage replyToStart(long chatId);
     SendMessage replyToStop(long chatId);
     SendMessage replyForDrinkFoodSelectionForOldOrder(long chatId, Message message);
-    SendMessage replyForDrinkFoodSelection(long chatId, Message message);
+    SendMessage replyForOrderSelection(long chatId, Message message);
     SendMessage replyForPosition(long chatId, Message message);
     SendMessage replyForAmount(long chatId, Message message);
     SendMessage replyStartForOldOrder(long chatId);

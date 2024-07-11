@@ -1,6 +1,7 @@
 package org.example.bot;
 
 import org.example.ReadConfig;
+import org.example.repository.OrderRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
@@ -17,13 +18,12 @@ import static org.example.bot.UserState.*;
 
 @Service
 public class ReplyServiceImpl implements ReplyService {
-
     private final Map<Long, UserState> chatStates;
-
-    private  KeyboardFactory keyboardFactory;
-
+    private KeyboardFactory keyboardFactory;
     private List<String> order = new ArrayList<>();
-
+    private List<String> positions = new ArrayList<>();
+    private List<Short> amounts = new ArrayList<>();
+    private OrderRepository orderRepository;
 
     public ReplyServiceImpl(Map<Long, UserState> chatStates) {
         this.chatStates = chatStates;
@@ -34,13 +34,18 @@ public class ReplyServiceImpl implements ReplyService {
         this.keyboardFactory = keyboardFactory;
     }
 
+    @Autowired
+    public void setOrderRepository(OrderRepository orderRepository) {
+        this.orderRepository = orderRepository;
+    }
+
     @Override
     public SendMessage replyToStart(long chatId) {
         SendMessage message = new SendMessage();
         message.setChatId(chatId);
         message.setText(START_TEXT);
-        message.setReplyMarkup(keyboardFactory.getFoodsOrDrinkKeyboardForNewOrder());
-        chatStates.put(chatId, UserState.NEW_ORDER_FOOD_DRINK_SELECTION);
+        message.setReplyMarkup(keyboardFactory.getKeyboardWithOrders());
+        chatStates.put(chatId, UserState.ORDER_SELECTION);
         return message;
     }
 
@@ -57,7 +62,7 @@ public class ReplyServiceImpl implements ReplyService {
 
 
     @Override
-    public SendMessage replyForDrinkFoodSelection(long chatId, Message message) {
+    public SendMessage replyForOrderSelection(long chatId, Message message) {
         if (isMessageCorrect(chatId, message)) {
             SendMessage sendMessage = new SendMessage();
             sendMessage.setChatId(chatId);
@@ -83,16 +88,49 @@ public class ReplyServiceImpl implements ReplyService {
             sendMessage.setText("Выбран " + message.getText());
             sendMessage.setReplyMarkup(keyboardFactory.getAmounts());
             chatStates.put(chatId, AMOUNT_SELECTION);
+
+            positions.add(message.getText());
             setInfoToOrder(message);
+
             return sendMessage;
         } else if (message.getText().equals(Constants.RETURN)) {
-            if (order.isEmpty()) {
+
+            if (positions.isEmpty()) {
                 return replyToStart(chatId);
             } else {
                 return replyStartForOldOrder(chatId);
             }
         }
         return unexpectedMessage(chatId);
+    }
+
+    @Override
+    public SendMessage replyForAmount(long chatId, Message message) {
+        SendMessage sendMessage = new SendMessage();
+        sendMessage.setChatId(chatId);
+
+        if (message.getText().equals(Constants.RETURN)) {
+            positions.remove(positions.size() - 1);
+            if (positions.isEmpty()) {
+                return replyToStart(chatId);
+            }
+            else {
+                return replyStartForOldOrder(chatId);
+            }
+        } else {
+            try {
+                short amount = Short.parseShort(message.getText());
+                sendMessage.setText("Добавлено " + amount);
+
+                amounts.add(amount);
+                setInfoToOrder(message);
+
+                return sendMessage;
+            } catch (NumberFormatException nfe) {
+                sendMessage.setText("сообщение не понято, напишите число");
+                return sendMessage;
+            }
+        }
     }
 
     private void setInfoToOrder(Message message) {
@@ -102,21 +140,6 @@ public class ReplyServiceImpl implements ReplyService {
             order.set(order.size() - 1, position);
         } catch (NumberFormatException nfe) {
             order.add(message.getText());
-        }
-    }
-
-    @Override
-    public SendMessage replyForAmount(long chatId, Message message) {
-        SendMessage sendMessage = new SendMessage();
-        sendMessage.setChatId(chatId);
-        try {
-            short amount = Short.parseShort(message.getText());
-            sendMessage.setText("Добавлено " + amount);
-            setInfoToOrder(message);
-            return sendMessage;
-        } catch (NumberFormatException nfe) {
-            sendMessage.setText("сообщение не понято, напишите число");
-            return sendMessage;
         }
     }
 
@@ -135,7 +158,7 @@ public class ReplyServiceImpl implements ReplyService {
         sendMessage.setChatId(chatId);
         switch (message.getText()) {
             case "Подытожить заказ": {
-                sendMessage.setText(order.toString());
+                sendMessage.setText(getOrder().toString());
                 return sendMessage;
             }
             case "Еда": {
@@ -151,6 +174,10 @@ public class ReplyServiceImpl implements ReplyService {
                 return sendMessage;
             }
             case Constants.RETURN: {
+                positions.remove(positions.size() - 1);
+                amounts.remove(amounts.size() - 1);
+
+                //
 
                 String position = order.get(order.size() - 1);
                 StringBuilder sb = new StringBuilder(position);
@@ -169,6 +196,15 @@ public class ReplyServiceImpl implements ReplyService {
         }
     }
 
+    private List<String> getOrder() {
+        List<String> result = new ArrayList<>();
+        System.out.println(positions.size() + " " + amounts.size());
+        for (int i = 0; i < positions.size(); i++) {
+            result.add(positions.get(i) + " " + amounts.get(i));
+        }
+        return result;
+    }
+
     @Override
     public SendMessage unexpectedMessage(long chatId) {
         SendMessage sendMessage = new SendMessage();
@@ -185,6 +221,7 @@ public class ReplyServiceImpl implements ReplyService {
     }
 
     private boolean isMessageContainsPosition(Message message) {
-        return ReadConfig.getDrinks().contains(message.getText()) || ReadConfig.getFood().contains(message.getText());
+        return ReadConfig.getDrinks().stream().anyMatch(drink -> drink.getName().equals(message.getText())) ||
+                ReadConfig.getFood().stream().anyMatch(food -> food.getName().equals(message.getText()));
     }
 }

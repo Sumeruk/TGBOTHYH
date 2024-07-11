@@ -1,6 +1,7 @@
 package org.example.bot;
 
 import org.example.ReadConfig;
+import org.example.models.ProductModel;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboard;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
@@ -8,13 +9,14 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.Keyboard
 import java.util.List;
 
 public class KeyboardFactoryFromFile extends KeyboardFactory{
-
+    private List<ProductModel> foods;
+    private List<ProductModel> drinks;
     @Override
     public  ReplyKeyboard getFoodsKeyboard(){
         KeyboardRow row = new KeyboardRow();
-        List<String> foods = ReadConfig.getFood();
-        for (String food: foods) {
-            row.add(food);
+        this.foods = ReadConfig.getFood();
+        for (ProductModel food: foods) {
+            row.add(food.getName());
         }
         row.add(Constants.RETURN);
         return new ReplyKeyboardMarkup(List.of(row));
@@ -23,11 +25,13 @@ public class KeyboardFactoryFromFile extends KeyboardFactory{
     @Override
     public ReplyKeyboard getDrinksKeyboard(){
         KeyboardRow row = new KeyboardRow();
-        List<String> drinks = ReadConfig.getDrinks();
-        for (String drink: drinks) {
-            row.add(drink);
+        this.drinks = ReadConfig.getDrinks();
+        for (ProductModel drink: drinks) {
+            row.add(drink.getName());
         }
         row.add(Constants.RETURN);
         return new ReplyKeyboardMarkup(List.of(row));
     }
+
+
 }

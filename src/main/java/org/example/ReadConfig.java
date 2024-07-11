@@ -2,6 +2,7 @@ package org.example;
 
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
+import org.example.models.ProductModel;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
@@ -29,27 +30,33 @@ public class ReadConfig {
     public static String getBotToken() {
         return configuration.getString("bot.token");
     }
-    public static List<String> getFood() {
+    public static List<ProductModel> getFood() {
         try {
             return readLinesFromFile(foodsResource.getFile());
-        } catch (IOException io){
+        } catch (Exception io){
             throw new RuntimeException("Cannot read food file");
         }
     }
 
-    public static List<String> getDrinks() {
+    public static List<ProductModel> getDrinks() {
         try {
             return readLinesFromFile(drinksResource.getFile());
-        } catch (IOException io) {
-            throw new RuntimeException("Cannot read food file");
+        } catch (Exception io){
+            throw new RuntimeException("Cannot read drinks file");
         }
     }
 
-    private static List<String> readLinesFromFile(File file){
-        List<String> result = new ArrayList<>();
-        try(BufferedReader br = new BufferedReader(new FileReader(file));) {
-            while (br.ready()) {
-                result.add(br.readLine());
+    private static List<ProductModel> readLinesFromFile(File file){
+        List<ProductModel> result = new ArrayList<>();
+        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                String[] parts = line.split(" ");
+                String name = parts[0];
+                int price = Integer.parseInt(parts[1]);
+
+                ProductModel product = new ProductModel(name, price, file.getName().replace(".txt", ""));
+                result.add(product);
             }
             return result;
         } catch (IOException e) {
