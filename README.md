@@ -19,3 +19,4 @@
 - AbilityBot
 - Spring Data JPA
 - Stream API
+- БД H2
