@@ -30,6 +30,7 @@ public class ReadConfig {
     public static String getBotToken() {
         return configuration.getString("bot.token");
     }
+    public static Integer getNumberOfTables(){return Integer.parseInt(configuration.getString("tables.number"));}
     public static List<ProductModel> getFood() {
         try {
             return readLinesFromFile(foodsResource.getFile());

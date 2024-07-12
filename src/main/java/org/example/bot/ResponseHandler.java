@@ -69,7 +69,10 @@ public class ResponseHandler {
         }
 
         switch (chatStates.get(chatId)) {
-            case ORDER_SELECTION -> replyForOrderSelection(chatId, message);
+            case ACTIVE_SELECTION -> replyForOrderSelection(chatId, message);
+            case FREE_TABLE_SELECTION -> replyForFreeTable(chatId, message);
+            case NOT_COMPLETED_TABLES_SELECTION -> replyToNotCompletedTable(chatId, message);
+            case FOOD_DRINK_SELECTION -> replyForFoodsOrDrinks(chatId, message);
             case OLD_ORDER_FOOD_DRINK_SELECTION -> replyForDrinkFoodSelectionForOldOrder(chatId, message);
             case CHOICE_POSITION -> replyForPosition(chatId, message);
             case AMOUNT_SELECTION -> replyForAmount(chatId, message);
@@ -80,6 +83,21 @@ public class ResponseHandler {
 
     private void replyForOrderSelection(long chatId, Message message) {
         SendMessage sendMessage = replyService.replyForOrderSelection(chatId, message);
+        sender.execute(sendMessage);
+    }
+
+    private void replyForFreeTable(long chatId, Message message){
+        SendMessage sendMessage = replyService.replyForFreeTable(chatId, message);
+        sender.execute(sendMessage);
+    }
+
+    private void replyToNotCompletedTable(long chatId, Message message){
+//        SendMessage sendMessage = replyService.replyToNotCompletedTable(chatId, message);
+//        sender.execute(sendMessage);
+    }
+
+    private void replyForFoodsOrDrinks(long chatId, Message message){
+        SendMessage sendMessage = replyService.replyForFoodDrinkSelection(chatId, message);
         sender.execute(sendMessage);
     }
 
@@ -96,14 +114,16 @@ public class ResponseHandler {
     private void replyForAmount(long chatId, Message message) {
         SendMessage sendMessage = replyService.replyForAmount(chatId, message);
         sender.execute(sendMessage);
-        if (!sendMessage.getText().equals(Constants.START_TEXT) &&
-                !sendMessage.getText().equals(Constants.START_TEXT_FOR_OLD_ORDER)) {
-            replyStartForOldOrder(chatId);
-        }
+        // refactor condition
+//        if (!sendMessage.getText().equals(Constants.START_TEXT) &&
+//                !sendMessage.getText().equals(Constants.CHOOSING_FOODS_OR_DRINKS)) {
+//            replyStartForOldOrder(chatId, message);
+//        }
+        replyStartForOldOrder(chatId, message);
     }
 
-    private void replyStartForOldOrder(long chatId) {
-        SendMessage sendMessage = replyService.replyStartForOldOrder(chatId);
+    private void replyStartForOldOrder(long chatId, Message message) {
+        SendMessage sendMessage = replyService.replyStartForOldOrder(chatId, message);
         sender.execute(sendMessage);
     }
 

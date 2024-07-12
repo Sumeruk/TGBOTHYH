@@ -1,6 +1,8 @@
 package org.example.bot;
 
+import org.example.DTO.ProductDTO;
 import org.example.ReadConfig;
+import org.example.entity.Order;
 import org.example.repository.OrderRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -9,16 +11,20 @@ import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import static org.example.bot.Constants.START_TEXT;
-import static org.example.bot.Constants.START_TEXT_FOR_OLD_ORDER;
+import static org.example.bot.Constants.CHOOSING_FOODS_OR_DRINKS;
 import static org.example.bot.UserState.*;
 
 @Service
 public class ReplyServiceImpl implements ReplyService {
     private final Map<Long, UserState> chatStates;
+    private final Map<Integer, List<ProductDTO>> tableOrder = new HashMap<>();
+    private final Map<Long, Integer> chatTable = new HashMap<>(2);
+
     private KeyboardFactory keyboardFactory;
     private List<String> order = new ArrayList<>();
     private List<String> positions = new ArrayList<>();
@@ -44,8 +50,8 @@ public class ReplyServiceImpl implements ReplyService {
         SendMessage message = new SendMessage();
         message.setChatId(chatId);
         message.setText(START_TEXT);
-        message.setReplyMarkup(keyboardFactory.getKeyboardWithOrders());
-        chatStates.put(chatId, UserState.ORDER_SELECTION);
+        message.setReplyMarkup(keyboardFactory.getKeyboardWithActivities());
+        chatStates.put(chatId, UserState.ACTIVE_SELECTION);
         return message;
     }
 
@@ -63,6 +69,71 @@ public class ReplyServiceImpl implements ReplyService {
 
     @Override
     public SendMessage replyForOrderSelection(long chatId, Message message) {
+        switch (message.getText()) {
+            case Constants.NEW_ORDER -> {
+                return getMessageWithFreeTables(chatId);
+            }
+            case Constants.ADD_TO_ORDER -> {
+                return getNotCompletedTables(chatId);
+            }
+            case Constants.CALCULATE_THE_TABLE -> {
+                // занятые столы -> рассчет стола
+                return null;
+            }
+            default -> {
+                return unexpectedMessage(chatId);
+            }
+
+        }
+
+    }
+
+    private SendMessage getMessageWithFreeTables(long chatId) {
+        SendMessage sendMessage = new SendMessage();
+        sendMessage.setChatId(chatId);
+        sendMessage.setText("Выберите стол");
+        sendMessage.setReplyMarkup(keyboardFactory.getKeyboardFreeTables());
+        chatStates.put(chatId, FREE_TABLE_SELECTION);
+        return sendMessage;
+    }
+
+    private SendMessage getNotCompletedTables(long chatId) {
+        SendMessage sendMessage = new SendMessage();
+        sendMessage.setChatId(chatId);
+        sendMessage.setText("Выберите стол");
+        sendMessage.setReplyMarkup(keyboardFactory.getNotCompletedTables());
+        chatStates.put(chatId, NOT_COMPLETED_TABLES_SELECTION);
+        return sendMessage;
+    }
+
+    @Override
+    public SendMessage replyForFreeTable(long chatId, Message message) {
+        try {
+
+            orderRepository.save(new Order(Integer.parseInt(message.getText()), false));
+            SendMessage sendMessage = new SendMessage();
+            sendMessage.setChatId(chatId);
+            sendMessage.setText(Constants.SELECTED + message.getText() + "\n" + CHOOSING_FOODS_OR_DRINKS);
+            sendMessage.setReplyMarkup(keyboardFactory.getFoodsOrDrinkKeyboardForNewOrder());
+
+            chatStates.put(chatId, FOOD_DRINK_SELECTION);
+            tableOrder.put(Integer.parseInt(message.getText()), new ArrayList<>());
+            chatTable.put(chatId, Integer.parseInt(message.getText()));
+
+            return sendMessage;
+        } catch (NumberFormatException nfe) {
+            return unexpectedMessage(chatId);
+        }
+
+    }
+
+    @Override
+    public SendMessage replyToNotCompletedTable(long chatId, Message message) {
+        return null;
+    }
+
+    @Override
+    public SendMessage replyForFoodDrinkSelection(long chatId, Message message) {
         if (isMessageCorrect(chatId, message)) {
             SendMessage sendMessage = new SendMessage();
             sendMessage.setChatId(chatId);
@@ -87,18 +158,25 @@ public class ReplyServiceImpl implements ReplyService {
             sendMessage.setChatId(chatId);
             sendMessage.setText("Выбран " + message.getText());
             sendMessage.setReplyMarkup(keyboardFactory.getAmounts());
+
             chatStates.put(chatId, AMOUNT_SELECTION);
 
-            positions.add(message.getText());
-            setInfoToOrder(message);
+            List<ProductDTO> productsInOrder = tableOrder.get(chatTable.get(chatId));
+            productsInOrder.add(new ProductDTO(message.getText()));
 
             return sendMessage;
+            // refactor return
         } else if (message.getText().equals(Constants.RETURN)) {
 
-            if (positions.isEmpty()) {
-                return replyToStart(chatId);
+            if (tableOrder.get(chatTable.get(chatId)).isEmpty()) {
+                message.setText(String.valueOf(chatTable.get(chatId)));
+                return replyForFreeTable(chatId, message);
             } else {
-                return replyStartForOldOrder(chatId);
+                List<ProductDTO> productsInOrder = tableOrder.get(chatTable.get(chatId));
+                productsInOrder.remove(productsInOrder.size() - 1);
+                System.out.println("DEBUG---назад при выборе позиции" + productsInOrder);
+                // refactor -> need to calling other method
+                return replyStartForOldOrder(chatId, message);
             }
         }
         return unexpectedMessage(chatId);
@@ -109,21 +187,30 @@ public class ReplyServiceImpl implements ReplyService {
         SendMessage sendMessage = new SendMessage();
         sendMessage.setChatId(chatId);
 
+        // refactoring return
         if (message.getText().equals(Constants.RETURN)) {
-            positions.remove(positions.size() - 1);
-            if (positions.isEmpty()) {
-                return replyToStart(chatId);
-            }
-            else {
-                return replyStartForOldOrder(chatId);
+            List<ProductDTO> productsInOrder = tableOrder.get(chatTable.get(chatId));
+            productsInOrder.remove(productsInOrder.size() - 1);
+
+            if (productsInOrder.isEmpty()) {
+                message.setText(String.valueOf(chatTable.get(chatId)));
+                return replyForFreeTable(chatId, message);
+            } else {
+                System.out.println("DEBUG---список не пустой");
+                // refactor -> need to calling other method
+                // condition around chatState
+                return replyStartForOldOrder(chatId, message);
             }
         } else {
             try {
                 short amount = Short.parseShort(message.getText());
                 sendMessage.setText("Добавлено " + amount);
 
-                amounts.add(amount);
-                setInfoToOrder(message);
+                List<ProductDTO> productsInOrder = tableOrder.get(chatTable.get(chatId));
+                ProductDTO lastAddedProduct = productsInOrder.get(productsInOrder.size() - 1);
+                lastAddedProduct.setAmount(amount);
+                productsInOrder.set(productsInOrder.size() - 1, lastAddedProduct);
+
 
                 return sendMessage;
             } catch (NumberFormatException nfe) {
@@ -144,13 +231,13 @@ public class ReplyServiceImpl implements ReplyService {
     }
 
     @Override
-    public SendMessage replyStartForOldOrder(long chatId) {
-        SendMessage message = new SendMessage();
-        message.setChatId(chatId);
-        message.setText(START_TEXT_FOR_OLD_ORDER);
-        message.setReplyMarkup(keyboardFactory.getFoodsOrDrinkKeyboardForOldOrder());
+    public SendMessage replyStartForOldOrder(long chatId, Message message) {
+        SendMessage sendMessage = new SendMessage();
+        sendMessage.setChatId(chatId);
+        sendMessage.setText(CHOOSING_FOODS_OR_DRINKS);
+        sendMessage.setReplyMarkup(keyboardFactory.getFoodsOrDrinkKeyboardForOldOrder());
         chatStates.put(chatId, UserState.OLD_ORDER_FOOD_DRINK_SELECTION);
-        return message;
+        return sendMessage;
     }
 
     public SendMessage replyForDrinkFoodSelectionForOldOrder(long chatId, Message message) {
@@ -158,7 +245,7 @@ public class ReplyServiceImpl implements ReplyService {
         sendMessage.setChatId(chatId);
         switch (message.getText()) {
             case "Подытожить заказ": {
-                sendMessage.setText(getOrder().toString());
+                sendMessage.setText(tableOrder.get(chatTable.get(chatId)).toString());
                 return sendMessage;
             }
             case "Еда": {
@@ -174,21 +261,15 @@ public class ReplyServiceImpl implements ReplyService {
                 return sendMessage;
             }
             case Constants.RETURN: {
-                positions.remove(positions.size() - 1);
-                amounts.remove(amounts.size() - 1);
 
-                //
+                List<ProductDTO> productsInOrder = tableOrder.get(chatTable.get(chatId));
+                productsInOrder.remove(productsInOrder.size() - 1);
 
-                String position = order.get(order.size() - 1);
-                StringBuilder sb = new StringBuilder(position);
-                sb.deleteCharAt(position.length() - 1);
-                position = sb.toString();
-                order.set(order.size() - 1, position);
-
-                message.setText(order.get(order.size() - 1));
-                order.remove(order.size() - 1);
                 return replyForPosition(chatId, message);
 
+            }
+            case Constants.HOME: {
+                return replyToStart(chatId);
             }
             default: {
                 return unexpectedMessage(chatId);

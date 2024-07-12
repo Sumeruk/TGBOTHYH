@@ -14,5 +14,12 @@ public class Order {
     @Column(name = "is_completed")
     private boolean isCompleted;
 
+    public Order(int desk, boolean isCompleted) {
+        this.desk = desk;
+        this.isCompleted = isCompleted;
+    }
 
+    public Order() {
+
+    }
 }
