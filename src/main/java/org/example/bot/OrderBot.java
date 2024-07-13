@@ -1,9 +1,6 @@
 package org.example.bot;
 
 import org.example.ReadConfig;
-import org.example.repository.OrderRepository;
-import org.example.repository.ProductRepository;
-import org.example.repository.TablesRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;

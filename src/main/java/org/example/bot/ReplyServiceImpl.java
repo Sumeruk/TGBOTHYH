@@ -1,9 +1,12 @@
 package org.example.bot;
 
 import org.example.DTO.ProductDTO;
+import org.example.DTO.ProductForBillDTO;
 import org.example.ReadConfig;
 import org.example.entity.Order;
+import org.example.entity.Product;
 import org.example.repository.OrderRepository;
+import org.example.repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
@@ -24,12 +27,9 @@ public class ReplyServiceImpl implements ReplyService {
     private final Map<Long, UserState> chatStates;
     private final Map<Integer, List<ProductDTO>> tableOrder = new HashMap<>();
     private final Map<Long, Integer> chatTable = new HashMap<>(2);
-
     private KeyboardFactory keyboardFactory;
-    private List<String> order = new ArrayList<>();
-    private List<String> positions = new ArrayList<>();
-    private List<Short> amounts = new ArrayList<>();
     private OrderRepository orderRepository;
+    private ProductRepository productRepository;
 
     public ReplyServiceImpl(Map<Long, UserState> chatStates) {
         this.chatStates = chatStates;
@@ -38,6 +38,11 @@ public class ReplyServiceImpl implements ReplyService {
     @Autowired
     public void setKeyboardFactory(@Qualifier("fromFile") KeyboardFactory keyboardFactory) {
         this.keyboardFactory = keyboardFactory;
+    }
+
+    @Autowired
+    public void setProductRepository(ProductRepository productRepository) {
+        this.productRepository = productRepository;
     }
 
     @Autowired
@@ -52,6 +57,7 @@ public class ReplyServiceImpl implements ReplyService {
         message.setText(START_TEXT);
         message.setReplyMarkup(keyboardFactory.getKeyboardWithActivities());
         chatStates.put(chatId, UserState.ACTIVE_SELECTION);
+
         return message;
     }
 
@@ -63,6 +69,11 @@ public class ReplyServiceImpl implements ReplyService {
         sendMessage.setReplyMarkup(keyboardFactory.getStart());
         chatStates.clear();
         chatStates.put(chatId, AWAITING_START);
+        try {
+            System.out.println(productRepository.findAll());
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
         return sendMessage;
     }
 
@@ -77,8 +88,7 @@ public class ReplyServiceImpl implements ReplyService {
                 return getNotCompletedTables(chatId);
             }
             case Constants.CALCULATE_THE_TABLE -> {
-                // занятые столы -> рассчет стола
-                return null;
+                return getTablesForCalculate(chatId);
             }
             default -> {
                 return unexpectedMessage(chatId);
@@ -106,6 +116,16 @@ public class ReplyServiceImpl implements ReplyService {
         return sendMessage;
     }
 
+    private SendMessage getTablesForCalculate(long chatId) {
+        SendMessage sendMessage = new SendMessage();
+        sendMessage.setChatId(chatId);
+        sendMessage.setText("Выберите стол");
+        sendMessage.setReplyMarkup(keyboardFactory.getNotCompletedTables());
+        chatStates.put(chatId, CALCULATE_TABLE);
+        return sendMessage;
+    }
+
+
     @Override
     public SendMessage replyForFreeTable(long chatId, Message message) {
         try {
@@ -129,8 +149,85 @@ public class ReplyServiceImpl implements ReplyService {
 
     @Override
     public SendMessage replyToNotCompletedTable(long chatId, Message message) {
-        return null;
+        try {
+            chatTable.put(chatId, Integer.valueOf(message.getText()));
+            return replyStartForOldOrder(chatId);
+        } catch (NumberFormatException nfe) {
+            return unexpectedMessage(chatId);
+        }
     }
+
+    //удалить все ненужное из мап
+    @Override
+    public SendMessage replyForCalculatingTable(long chatId, Message message) {
+        try {
+            List<ProductDTO> productsFromOrder = tableOrder.get(Integer.parseInt(message.getText()));
+            List<ProductForBillDTO> productsInBill = calculatingOrder(productsFromOrder);
+
+            if (productsInBill == null) {
+                return unexpectedMessage(chatId);
+            }
+
+            tableOrder.remove(Integer.parseInt(message.getText()));
+
+            Order endingOrder = orderRepository.getOrderByTable(Integer.parseInt(message.getText()));
+            endingOrder.setCompleted(true);
+            orderRepository.save(endingOrder);
+
+            SendMessage sendMessage = new SendMessage();
+            sendMessage.setChatId(chatId);
+            sendMessage.setText(productsInBill.toString());
+
+            return sendMessage;
+        } catch (NumberFormatException nfe) {
+            return unexpectedMessage(chatId);
+        }
+
+    }
+
+    private List<ProductForBillDTO> calculatingOrder(List<ProductDTO> productsFromOrder) {
+        List<Product> foods = keyboardFactory.getFoods();
+        List<Product> drinks = keyboardFactory.getDrinks();
+
+        List<ProductForBillDTO> productsInBill = new ArrayList<>();
+
+        for (ProductDTO productFromOrder : productsFromOrder) {
+            ProductForBillDTO currProduct = new ProductForBillDTO();
+            currProduct.setName(productFromOrder.getName());
+
+            int amount, cost;
+            amount = productFromOrder.getAmount();
+            cost = amount * getPrice(foods, drinks, productFromOrder);
+
+            if (cost < 0) {
+                return null;
+            }
+
+            currProduct.setAmount(amount);
+            currProduct.setCost(cost);
+
+            productsInBill.add(currProduct);
+        }
+
+        return productsInBill;
+    }
+
+    private int getPrice(List<Product> foods, List<Product> drinks, ProductDTO productFromOrder) {
+        for (int i = 0; i < foods.size(); i++) {
+            if (foods.get(i).getName().equals(productFromOrder.getName())) {
+                return foods.get(i).getPrice();
+            }
+        }
+
+        for (int i = 0; i < drinks.size(); i++) {
+            if (drinks.get(i).getName().equals(productFromOrder.getName())) {
+                return drinks.get(i).getPrice();
+            }
+        }
+
+        return -1;
+    }
+
 
     @Override
     public SendMessage replyForFoodDrinkSelection(long chatId, Message message) {
@@ -176,7 +273,7 @@ public class ReplyServiceImpl implements ReplyService {
                 productsInOrder.remove(productsInOrder.size() - 1);
                 System.out.println("DEBUG---назад при выборе позиции" + productsInOrder);
                 // refactor -> need to calling other method
-                return replyStartForOldOrder(chatId, message);
+                return replyStartForOldOrder(chatId);
             }
         }
         return unexpectedMessage(chatId);
@@ -196,10 +293,7 @@ public class ReplyServiceImpl implements ReplyService {
                 message.setText(String.valueOf(chatTable.get(chatId)));
                 return replyForFreeTable(chatId, message);
             } else {
-                System.out.println("DEBUG---список не пустой");
-                // refactor -> need to calling other method
-                // condition around chatState
-                return replyStartForOldOrder(chatId, message);
+                return null;
             }
         } else {
             try {
@@ -220,18 +314,8 @@ public class ReplyServiceImpl implements ReplyService {
         }
     }
 
-    private void setInfoToOrder(Message message) {
-        try {
-            Integer.parseInt(message.getText());
-            String position = order.get(order.size() - 1) + message.getText();
-            order.set(order.size() - 1, position);
-        } catch (NumberFormatException nfe) {
-            order.add(message.getText());
-        }
-    }
-
     @Override
-    public SendMessage replyStartForOldOrder(long chatId, Message message) {
+    public SendMessage replyStartForOldOrder(long chatId) {
         SendMessage sendMessage = new SendMessage();
         sendMessage.setChatId(chatId);
         sendMessage.setText(CHOOSING_FOODS_OR_DRINKS);
@@ -277,15 +361,6 @@ public class ReplyServiceImpl implements ReplyService {
         }
     }
 
-    private List<String> getOrder() {
-        List<String> result = new ArrayList<>();
-        System.out.println(positions.size() + " " + amounts.size());
-        for (int i = 0; i < positions.size(); i++) {
-            result.add(positions.get(i) + " " + amounts.get(i));
-        }
-        return result;
-    }
-
     @Override
     public SendMessage unexpectedMessage(long chatId) {
         SendMessage sendMessage = new SendMessage();
@@ -302,7 +377,8 @@ public class ReplyServiceImpl implements ReplyService {
     }
 
     private boolean isMessageContainsPosition(Message message) {
-        return ReadConfig.getDrinks().stream().anyMatch(drink -> drink.getName().equals(message.getText())) ||
-                ReadConfig.getFood().stream().anyMatch(food -> food.getName().equals(message.getText()));
+        return ReadConfig.getDrinksFromRepository().stream().anyMatch(drink -> drink.getName().equals(message.getText()))
+                ||
+                ReadConfig.getFoodsFromRepository().stream().anyMatch(food -> food.getName().equals(message.getText()));
     }
 }

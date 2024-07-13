@@ -2,6 +2,7 @@ package org.example.bot;
 
 import org.example.ReadConfig;
 import org.example.entity.Order;
+import org.example.entity.Product;
 import org.example.repository.OrderRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboard;
@@ -39,6 +40,14 @@ public abstract class KeyboardFactory {
     public abstract ReplyKeyboard getFoodsKeyboard();
 
     public abstract ReplyKeyboard getDrinksKeyboard();
+
+    public abstract List<Product> getFoods();
+
+    public abstract void setFoods(List<Product> foods);
+
+    public abstract List<Product> getDrinks();
+
+    public abstract void setDrinks(List<Product> drinks);
 
     public ReplyKeyboard getAmounts(){
         KeyboardRow row = new KeyboardRow();

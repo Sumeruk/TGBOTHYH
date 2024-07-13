@@ -7,13 +7,14 @@ public interface ReplyService {
     SendMessage replyToStart(long chatId);
     SendMessage replyToStop(long chatId);
     SendMessage replyForDrinkFoodSelectionForOldOrder(long chatId, Message message);
+    SendMessage replyForCalculatingTable(long chatId, Message message);
     SendMessage replyForOrderSelection(long chatId, Message message);
     SendMessage replyForFreeTable(long chatId, Message message);
     SendMessage replyToNotCompletedTable(long chatId, Message message);
     SendMessage replyForFoodDrinkSelection(long charId, Message message);
     SendMessage replyForPosition(long chatId, Message message);
     SendMessage replyForAmount(long chatId, Message message);
-    SendMessage replyStartForOldOrder(long chatId, Message message);
+    SendMessage replyStartForOldOrder(long chatId);
     SendMessage unexpectedMessage(long chatId);
 
 }

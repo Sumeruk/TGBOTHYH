@@ -13,4 +13,13 @@ public class Product {
     private String name;
     private int price;
     private String type;
+
+    public Product(String name, int price, String type) {
+        this.name = name;
+        this.price = price;
+        this.type = type;
+    }
+
+    public Product() {
+    }
 }
