@@ -81,7 +81,7 @@ public abstract class KeyboardFactory {
                 .map(Order::getDesk)
                 .map(String::valueOf)
                 .forEach(row::add);
-        row.add(Constants.RETURN);
+        row.add(Constants.HOME);
 
         return new ReplyKeyboardMarkup(List.of(row));
     }
@@ -92,7 +92,7 @@ public abstract class KeyboardFactory {
         for (Integer freeTable: freeTables) {
             row.add(String.valueOf(freeTable));
         }
-        row.add(Constants.RETURN);
+        row.add(Constants.HOME);
 
         return new ReplyKeyboardMarkup(List.of(row));
     }
